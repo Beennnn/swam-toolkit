@@ -112,3 +112,9 @@ Windows (untested there; reports welcome).
 MIT — see [LICENSE](LICENSE). Provided as-is; SWAM and the `.swamec`/`.nksf`
 formats belong to Audio Modeling and are undocumented, so any update may
 change them.
+
+## See also
+
+* [als-wire](https://github.com/Beennnn/als-wire) — companion project: batch-wire
+  plugin parameters (by these very IDs) to Ableton rack macros and MIDI
+  mappings directly in `.als` files.
