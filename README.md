@@ -107,6 +107,11 @@ Windows (untested there; reports welcome).
 | same hash for AU parameter addresses | ⚠️ expected (JUCE), not yet verified |
 | Windows factory paths | ⚠️ untested |
 
+## Discussion
+
+Announcement thread (feedback / AU + Windows reports welcome):
+[KVR Audio — Instruments forum](https://www.kvraudio.com/forum/viewtopic.php?t=631399).
+
 ## Credits
 
 Built by Benoît Besson in an AI-assisted workflow: a substantial part of the
