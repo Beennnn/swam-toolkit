@@ -107,6 +107,13 @@ Windows (untested there; reports welcome).
 | same hash for AU parameter addresses | ⚠️ expected (JUCE), not yet verified |
 | Windows factory paths | ⚠️ untested |
 
+## Credits
+
+Built by Benoît Besson in an AI-assisted workflow: a substantial part of the
+reverse engineering, tooling and documentation was produced together with
+[Claude](https://claude.com/claude-code) (Anthropic). All empirical
+verification ran against real installs and a real live rig.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Provided as-is; SWAM and the `.swamec`/`.nksf`
