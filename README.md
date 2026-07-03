@@ -34,9 +34,20 @@ Verified against the `ParameterId` values a DAW stores once the parameter is
 exposed (Ableton Live 12, SWAM Trumpet 3.5.0: `growl → 98629305`,
 `flutterTongue → 1408862784`). This means you can address **any** SWAM
 parameter from project-file generators, controller integrations or automation
-tooling without ever touching the plugin GUI. AU note: JUCE derives AU
-parameter addresses from the same hash — expected identical, not yet
-independently verified.
+tooling without ever touching the plugin GUI. AU note: the AU builds use the
+**same scheme** — `AudioUnitParameterID` = the unsigned hashCode of the
+internal name. Verified with `auval` (`auval -v aumu Svl3 AuMo`): 56 internal
+names matched their reported parameter IDs exactly (tremoloParam, portamentoCtrl,
+bowForceParam, exprStrResParam, accStyle, harmonicsParam, …).
+
+**Caveat — state names vs exposed-automation names.** A parameter's id string
+in the `.nksf`/state XML is *usually* identical to the exposed automation
+parameter's id, but not always. A few diverge: e.g. the state calls bow
+position `bowPositionParam`, while the exposed automation parameter hashes from
+a different id (auval "Bow/Pizz Position" = 1013107514, not
+`hash("bowPositionParam")`); same for `sordinoParam` vs the exposed "Sordino"
+(1336834641). For robust host wiring, derive IDs from the **exposed** parameter
+list (auval for AU) for those few params, not from state names.
 
 ### 2. The factory MIDI map is identical across the whole SWAM Solo range
 
@@ -104,7 +115,8 @@ Windows (untested there; reports welcome).
 | param-name hash = VST3 ParameterId | ✅ verified (Live 12 + SWAM Trumpet 3.5.0, 2 params) |
 | factory map identical across 33 instruments | ✅ verified by extraction on my install |
 | `.swamec` import accepts generated files | ✅ verified (Trumpet 3.5.0, "Import Succeeded" + table inspected) |
-| same hash for AU parameter addresses | ⚠️ expected (JUCE), not yet verified |
+| same hash for AU parameter addresses | ✅ verified via `auval` (56 internal names matched their reported AU parameter IDs) |
+| state param name == exposed automation name | ⚠️ usually, but a few diverge (bowPositionParam, sordinoParam) — see Caveat |
 | Windows factory paths | ⚠️ untested |
 
 ## Discussion
