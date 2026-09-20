@@ -91,6 +91,6 @@ to Audio Modeling and are undocumented, so any update may change them.
 
 ## See also
 
-[als-wire](https://github.com/Beennnn/als-wire) — companion project: batch-wire plugin
+[als-wire](https://github.com/Beennnn/ableton-als-wire) — companion project: batch-wire plugin
 parameters (by these very IDs) to Ableton rack macros and MIDI mappings directly in `.als`
 files.
