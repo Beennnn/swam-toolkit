@@ -1,88 +1,34 @@
 # swam-toolkit
 
-Unofficial tooling and reverse-engineered knowledge for automating the MIDI
-mapping of **SWAM instruments** (Audio Modeling) from the host side — no GUI
-clicking, no per-instance MIDI-Learn.
+**Address any SWAM parameter from the host side, and generate the `.swamec` files that
+map the ones the factory leaves unmapped — no GUI clicking, no per-instance MIDI-Learn.**
 
-Born from wiring a live keyboard rig (Ableton Live 12 + SWAM Solo Brass /
-Woodwinds / Strings + breath controller + Stream Deck) where every finding
-below was verified empirically. Python 3 standard library only.
+```console
+$ python3 param_id.py growl
+growl  98629305
 
-> **Not affiliated with Audio Modeling.** Everything here was obtained by
-> inspecting files installed on my own machine. No factory content is
-> redistributed — the tools read *your* installed presets at runtime.
+$ python3 extract_mappings.py
+| Instrument | Family | Ch | Expr | VibDep | VibRate | Vol | Pan | Sus | Rev | Pitch bend | Presets |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Trumpet | Brass | Omni | CC11 | CC1 | CC19 | CC7 | CC10 | CC64 | CC90 | ±12/12 | 7 |
+| Tenor Sax 3 | Woodwinds | Omni | CC11 | CC1 | CC19 | CC7 | CC10 | CC64 | CC90 | ±2/3 | 6 |
+| Violin 3 | Strings | Omni | CC11 | CC1 | CC19 | CC7 | CC10 | CC64 | CC90 | ±2/2 | 7 |
+…
 
-## The findings
-
-### 1. Host parameter IDs are just a string hash
-
-SWAM plugins are JUCE-based. The VST3 parameter ID of any SWAM parameter is
-the **Java-style `String.hashCode()` of its internal name** (signed 32-bit):
-
-```
-expression        -290107779      growl              98629305
-vibratoDepth      1547058706      flutterTongue    1408862784
-vibratoRate       1436977715      flutter           -760334308
-mainVolume        -484302104      tremoloParam     1781921569
-sustain            390049837      bowPositionParam -1134376134
-portamentoCtrl    1417577692      sordinoParam      -810649007
+$ python3 gen_swamec.py --out ./swamec      # Brass / Woodwinds / Strings, factory table + your extra CCs
 ```
 
-(regenerate anytime: `python3 param_id.py`)
+> **Not affiliated with Audio Modeling.** Everything here was obtained by inspecting files
+> installed on my own machine. No factory content is redistributed — the tools read *your*
+> installed presets at runtime.
 
-Verified against the `ParameterId` values a DAW stores once the parameter is
-exposed (Ableton Live 12, SWAM Trumpet 3.5.0: `growl → 98629305`,
-`flutterTongue → 1408862784`). This means you can address **any** SWAM
-parameter from project-file generators, controller integrations or automation
-tooling without ever touching the plugin GUI. AU note: the AU builds use the
-**same scheme** — `AudioUnitParameterID` = the unsigned hashCode of the
-internal name. Verified with `auval` (`auval -v aumu Svl3 AuMo`): 56 internal
-names matched their reported parameter IDs exactly (tremoloParam, portamentoCtrl,
-bowForceParam, exprStrResParam, accStyle, harmonicsParam, …).
+## What it's for
 
-**Caveat — state names vs exposed-automation names.** A parameter's id string
-in the `.nksf`/state XML is *usually* identical to the exposed automation
-parameter's id, but not always. A few diverge: e.g. the state calls bow
-position `bowPositionParam`, while the exposed automation parameter hashes from
-a different id (auval "Bow/Pizz Position" = 1013107514, not
-`hash("bowPositionParam")`); same for `sordinoParam` vs the exposed "Sordino"
-(1336834641). For robust host wiring, derive IDs from the **exposed** parameter
-list (auval for AU) for those few params, not from state names.
-
-### 2. The factory MIDI map is identical across the whole SWAM Solo range
-
-Extracted from the factory presets of 33 installed instruments
-(see [docs/default-mappings.md](docs/default-mappings.md) for the full table):
-
-| Parameter | CC | | Parameter | CC |
-|---|---|---|---|---|
-| Expression | **CC11** | | Pan | CC10 |
-| Vibrato Depth | **CC1** | | Sustain | CC64 |
-| Vibrato Rate | **CC19** | | Reverb Mix | CC90 |
-| Volume | CC7 | | *(receive channel)* | **Omni** |
-
-Only the pitch-bend range differs by family (Brass ±12, Strings ±2,
-flutes ±1, reeds/saxes ±2-3). **Growl, flutter, tremolo, bow position,
-portamento… are NOT factory-mapped** — that's precisely what this toolkit
-lets you automate, either plugin-side (`.swamec`) or host-side (parameter
-IDs above).
-
-### 3. The state containers are all the same XML
-
-SWAM's full state — sound-engine values, MIDI mapping, micro-tuning — is one
-plain XML document (`<swam …> … </swam>`) wrapped in different containers:
-raw inside factory `.nksf` presets, JUCE-custom-base64 inside
-`~/Library/Application Support/SWAM *.settings`, hex inside DAW project
-plugin-state blobs. `decode_state.py` unwraps all of them.
-
-### 4. `.swamec` files are plain XML too — and one file covers a family
-
-The *External Controller Mapping* export/import format is the `<midimapping>`
-section of that same XML. One file imports into any instrument of the same
-family (per Audio Modeling), so **three generated files cover an entire SWAM
-Solo collection** — 1-click import per instance instead of MIDI-Learn per
-parameter. Import path in the plugin: main menu **… → Controller Mapping →
-Import**. Verified on SWAM Trumpet v3.5.0 / Ableton Live 12.
+Growl, flutter, tremolo, bow position and portamento are **not** factory-mapped on any
+SWAM instrument, so exposing them means MIDI-Learn, per parameter, per instance — and
+again for every new project. Two findings remove that: the host parameter ID of any SWAM
+parameter is just a hash of its internal name, and a `.swamec` mapping file is plain XML
+that imports into any instrument of the same family.
 
 ## The tools
 
@@ -93,31 +39,38 @@ Import**. Verified on SWAM Trumpet v3.5.0 / Ableton Live 12.
 | `decode_state.py` | extract the state XML from `.settings` / `.nksf` / raw blobs |
 | `gen_swamec.py` | generate per-family `.swamec` files: factory table + your extra CCs |
 
-```bash
-# what does my installed collection map by default?
-python3 extract_mappings.py
+Python 3, standard library only. The default factory path is the macOS one
+(`/Library/Application Support/Audio Modeling`) — use `--factory-dir` on Windows (untested
+there; reports welcome).
 
-# what's the VST3 param ID of the sax growl?
-python3 param_id.py growl
+## Parameter IDs
 
-# build Brass/Woodwinds/Strings .swamec adding growl→CC12, flutter→CC13, …
-python3 gen_swamec.py --out ./swamec
+SWAM plugins are JUCE-based, and JUCE derives the VST3 parameter ID from the parameter's
+internal name via Java's `String.hashCode()` (signed 32-bit). `param_id.py` with no
+argument prints the common ones:
+
+```console
+$ python3 param_id.py expression growl vibratoDepth flutterTongue tremoloParam bowPositionParam
+expression        -1795452264
+growl             98629305
+vibratoDepth      1044572362
+flutterTongue     1408862784
+tremoloParam      1781921569
+bowPositionParam  -1134376134
 ```
 
-Default factory path is the macOS one
-(`/Library/Application Support/Audio Modeling`) — use `--factory-dir` on
-Windows (untested there; reports welcome).
+⚠️ For a few parameters the **state** name and the **exposed automation** name diverge, so
+derive IDs for those from the exposed parameter list rather than from state names — see
+[docs/reverse-engineering.md](docs/reverse-engineering.md#caveat--state-names-vs-exposed-automation-names).
 
-## Verification status
+## What was established, and how sure
 
-| Claim | Status |
-|---|---|
-| param-name hash = VST3 ParameterId | ✅ verified (Live 12 + SWAM Trumpet 3.5.0, 2 params) |
-| factory map identical across 33 instruments | ✅ verified by extraction on my install |
-| `.swamec` import accepts generated files | ✅ verified (Trumpet 3.5.0, "Import Succeeded" + table inspected) |
-| same hash for AU parameter addresses | ✅ verified via `auval` (56 internal names matched their reported AU parameter IDs) |
-| state param name == exposed automation name | ⚠️ usually, but a few diverge (bowPositionParam, sordinoParam) — see Caveat |
-| Windows factory paths | ⚠️ untested |
+The four findings behind these tools — the ID hash, the factory map being identical across
+the whole SWAM Solo range, the shared XML state container, and the `.swamec` format — are
+written up with their evidence in **[docs/reverse-engineering.md](docs/reverse-engineering.md)**, alongside a
+verification-status table that says plainly which claims were measured and which are
+untested. The full extracted factory table for 33 instruments is in
+[docs/default-mappings.md](docs/default-mappings.md).
 
 ## Discussion
 
@@ -126,19 +79,18 @@ Announcement thread (feedback / AU + Windows reports welcome):
 
 ## Credits
 
-Built by Benoît Besson in an AI-assisted workflow: a substantial part of the
-reverse engineering, tooling and documentation was produced together with
-[Claude](https://claude.com/claude-code) (Anthropic). All empirical
-verification ran against real installs and a real live rig.
+Built by Benoît Besson in an AI-assisted workflow: a substantial part of the reverse
+engineering, tooling and documentation was produced together with
+[Claude](https://claude.com/claude-code) (Anthropic). All empirical verification ran
+against real installs and a real live rig.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Provided as-is; SWAM and the `.swamec`/`.nksf`
-formats belong to Audio Modeling and are undocumented, so any update may
-change them.
+MIT — see [LICENSE](LICENSE). Provided as-is; SWAM and the `.swamec`/`.nksf` formats belong
+to Audio Modeling and are undocumented, so any update may change them.
 
 ## See also
 
-* [als-wire](https://github.com/Beennnn/als-wire) — companion project: batch-wire
-  plugin parameters (by these very IDs) to Ableton rack macros and MIDI
-  mappings directly in `.als` files.
+[als-wire](https://github.com/Beennnn/als-wire) — companion project: batch-wire plugin
+parameters (by these very IDs) to Ableton rack macros and MIDI mappings directly in `.als`
+files.
