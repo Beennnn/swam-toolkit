@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/banner.svg" alt="swam-toolkit" width="100%"></p>
+
 # swam-toolkit
 
 **Address any SWAM parameter from the host side, and generate the `.swamec` files that
@@ -91,6 +93,6 @@ to Audio Modeling and are undocumented, so any update may change them.
 
 ## See also
 
-[als-wire](https://github.com/Beennnn/ableton-als-wire) — companion project: batch-wire plugin
+[ableton-als-wire](https://github.com/Beennnn/ableton-als-wire) — companion project: batch-wire plugin
 parameters (by these very IDs) to Ableton rack macros and MIDI mappings directly in `.als`
 files.
